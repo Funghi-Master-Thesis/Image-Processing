@@ -4,7 +4,7 @@ from skimage import io, color, util, filters, exposure
 import matplotlib.pyplot as plt
 from skimage.filters import median
 import cv2
-from skimage.util import img_as_float
+from skimage.util import img_as_float, img_as_ubyte
 from skimage.io import imread, imshow
 from skimage.filters import gaussian
 from skimage.filters import prewitt_h
@@ -57,11 +57,17 @@ car = "car.png"
 donald1 = "donald_1.png"
 ElbowCTSlice = "ElbowCTSlice.png"
 
+funghi_prefix = "IBT23253/"
+
+funghi = funghi_prefix + "60.jpeg"
+
 gaussian_img = preprocess_image(Gaussian)
 salt_pepper_img = preprocess_image(SaltPepper)
 car_img = preprocess_image(car)
 donald1_img = preprocess_image(donald1)
 ElbowCTSlice_img = preprocess_image(ElbowCTSlice)
+funghi_img = preprocess_image(funghi)
+
 
 
 def meanFiltered(image, size):
@@ -151,23 +157,20 @@ def prewitt(image):
     plt.show()
 
 def edgeDetection(image):
-    filtered_img = gaussian(image, sigma=1)
 
     # Step 1: Compute the gradients in the filtered image using a Prewitt filter
-    gradient_mag = filters.prewitt_h(image)
+    gradient_img = filters.prewitt(image)
+    
+    # Apply Otsu's thresholding to compute binary image
+    threshold = filters.threshold_otsu(gradient_img)
+    binary_img = gradient_img >= threshold
+    
+    # Convert binary image to unsigned byte
+    proc_img = img_as_ubyte(binary_img)
 
-    # Step 2: Use Otsu's thresholding method to compute a threshold, T, in the gradient image
-    threshold = filters.threshold_otsu(gradient_mag)
-
-    # Step 3: Apply the threshold, T, to the gradient image to create a binary image
-    binary_img = gradient_mag >= threshold
-
-    min_val = binary_img.min()
-    max_val = binary_img.max()
-    scaled_img = exposure.rescale_intensity(binary_img, in_range=(min_val, max_val), out_range=(0, 1))
-
-    io.imshow(scaled_img, cmap='gray')
+    io.imshow(proc_img, cmap='gray')
     io.show()
+
 
 
 # ### Exercise 3
@@ -193,4 +196,5 @@ def edgeDetection(image):
 ### Exercise 9
 
 ### Exercise 10
-edgeDetection(ElbowCTSlice_img)
+# edgeDetection(ElbowCTSlice_img)
+# edgeDetection(funghi_img)
