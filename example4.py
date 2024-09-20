@@ -2,14 +2,14 @@ import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 
-image = cv2.imread("data/IBT23253/335.jpeg")
+image = cv2.imread("data/IBT23253/100.jpeg")
 original = image.copy()
 mask = np.zeros(image.shape, dtype=np.uint8)
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+thresh = cv2.threshold(gray, 0, 50, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (6,6))
+opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=3)
 
 cnts = cv2.findContours(opening, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 cnts = cnts[0] if len(cnts) == 2 else cnts[1]

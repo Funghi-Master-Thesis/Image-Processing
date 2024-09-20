@@ -13,7 +13,7 @@ blurred = cv2.blur(image, (bkz, bkz), 0)
 (T, thresh) = cv2.threshold(blurred, 150, 150, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
 # Morphological filters
-kernel = np.ones((5, 5), np.uint8)
+kernel = np.ones((15, 15), np.uint8)
 thresh = cv2.erode(thresh, kernel, iterations=1)
 #thresh = cv2.dilate(thresh, kernel, iterations=1)
 

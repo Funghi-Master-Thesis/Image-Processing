@@ -23,15 +23,18 @@ def canny_edge_detector(image_path, low_threshold, high_threshold):
     # Edge tracking by hysteresis
     edge_map = cv2.Canny(blurred_image, low_threshold, high_threshold)
 
+
     return edge_map
 
 # Example usage
-image_path = 'data/IBT23253/70.jpeg'
+image_path = 'Data/IBT23253/300.jpeg'
 low_threshold = 5
 high_threshold = 100
 edge_map = canny_edge_detector(image_path, low_threshold, high_threshold)
+kernel = np.ones((15,15))
+    # do a morphologic close
+edge_map = cv2.morphologyEx(edge_map,cv2.MORPH_CLOSE, kernel)
 
-# Display the original and Canny edge-detected images
 original_image = cv2.imread(image_path)
 original_image_rgb = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
