@@ -104,7 +104,7 @@ def detect_similar_circles(edge_map, size_threshold=25, min_distance_between_cir
         return non_overlapping_circles
 
 # Detect similar circles with updated parameters
-detected_circles = detect_similar_circles(edge_map, size_threshold=25, min_distance_between_circles=75)
+detected_circles = detect_similar_circles(edge_map, size_threshold=25, min_distance_between_circles=50)
 
 # Total number of detected dishes
 num_dishes = len(detected_circles)
