@@ -4,12 +4,11 @@ import numpy as np
 import cv2 as cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 from skimage import data, color
 from skimage.transform import hough_circle, hough_circle_peaks
-from skimage.feature import canny
-from skimage.draw import circle_perimeter
-from skimage.util import img_as_ubyte
+
 
 
 img = cv2.imread('Data/IBT23253/273.jpeg')
@@ -18,6 +17,8 @@ ogimg = img.copy()
 img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
 cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 output=img.copy()
+low_threshold = 5
+high_threshold = 100
 def canny_edge_detector(low_threshold, high_threshold):
     # Read the image using OpenCV
 
@@ -42,8 +43,7 @@ def canny_edge_detector(low_threshold, high_threshold):
     return edge_map
 
 # Example usage
-low_threshold = 5
-high_threshold = 100
+
 edge_map = canny_edge_detector(low_threshold, high_threshold)
 kernel = np.ones((3,3))
     # do a morphologic close
@@ -68,28 +68,28 @@ mask2 = cv2.imread('mask.png',0)
 res = cv2.bitwise_and(ogimg,ogimg,mask = mask2)
 cv2.imwrite("testmasked.jpeg", res)
 
-plt.subplot(1, 4, 1)
-plt.imshow(cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
-plt.title('Original Image')
-plt.axis('off')
+# plt.subplot(1, 4, 1)
+# plt.imshow(cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
+# plt.title('Original Image')
+# plt.axis('off')
 
-# Display the images
-plt.subplot(1, 4, 2)
-plt.imshow(cv2.cvtColor(edge_map, cv2.COLOR_BGR2RGB))
-plt.title('Edge')
-plt.axis('off')
+# # Display the images
+# plt.subplot(1, 4, 2)
+# plt.imshow(cv2.cvtColor(edge_map, cv2.COLOR_BGR2RGB))
+# plt.title('Edge')
+# plt.axis('off')
 
-# Display the images
-plt.subplot(1, 4, 3)
-plt.imshow(cv2.cvtColor(mask2, cv2.COLOR_BGR2RGB))
-plt.title('Mask')
-plt.axis('off')
+# # Display the images
+# plt.subplot(1, 4, 3)
+# plt.imshow(cv2.cvtColor(mask2, cv2.COLOR_BGR2RGB))
+# plt.title('Mask')
+# plt.axis('off')
 
-# Canny Edge-detected Image
+# # Canny Edge-detected Image
 
-plt.subplot(1, 4, 4)
-plt.imshow(cv2.cvtColor(res, cv2.COLOR_BGR2RGB))
-plt.title('Masked image')
-plt.axis('off')
-# Display the images
-plt.show()
+# plt.subplot(1, 4, 4)
+# plt.imshow(cv2.cvtColor(res, cv2.COLOR_BGR2RGB))
+# plt.title('Masked image')
+# plt.axis('off')
+# # Display the images
+# plt.show()
