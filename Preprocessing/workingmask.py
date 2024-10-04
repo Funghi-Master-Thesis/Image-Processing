@@ -12,7 +12,7 @@ from skimage.draw import circle_perimeter
 from skimage.util import img_as_ubyte
 
 
-img = cv2.imread('Data/IBT23253/273.jpeg')
+img = cv2.imread('Data/RIS1_0_TL_20_preset/329 copy.jpeg')
 ogh, ogw, _ = img.shape
 ogimg = img.copy()
 img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
@@ -66,6 +66,31 @@ cv2.imwrite("mask.png", mask)
 mask2 = cv2.imread('mask.png',0)
 # # Original Image
 res = cv2.bitwise_and(ogimg,ogimg,mask = mask2)
+
+def crop_petri_dishes(masked_image, original_height, original_width, centers_x, centers_y, radii):
+    cropped_images = []
+    for i, (center_y, center_x, radius) in enumerate(zip(centers_y, centers_x, radii)):
+        # Calculate the bounding box coordinates
+        x1 = max((center_x * 10) - (radius * 10), 0)  # left
+        y1 = max((center_y * 10) - (radius * 10), 0)  # top
+        x2 = min((center_x * 10) + (radius * 10), original_width)  # right
+        y2 = min((center_y * 10) + (radius * 10), original_height)  # bottom
+
+        # Crop the image around the detected circle from the masked image
+        cropped_masked_img = masked_image[int(y1):int(y2), int(x1):int(x2)]
+        
+        # Save the cropped masked image
+        output_path = f"cropped_masked_petri_dish_{i+1}.png"
+        cv2.imwrite(output_path, cropped_masked_img)
+        cropped_images.append(output_path)
+        print(f"Cropped masked petri dish saved as {output_path}")
+    
+    return cropped_images
+
+# Call the cropping function
+cropped_images = crop_petri_dishes(res, ogh, ogw, cx, cy, radii)
+
+
 cv2.imwrite("testmasked.jpeg", res)
 
 plt.subplot(1, 4, 1)
