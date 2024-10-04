@@ -42,8 +42,8 @@ def canny_edge_detector(low_threshold, high_threshold):
     return edge_map
 
 # Example usage
-low_threshold = 5
-high_threshold = 100
+low_threshold = 80
+high_threshold = 115
 edge_map = canny_edge_detector(low_threshold, high_threshold)
 kernel = np.ones((3,3))
     # do a morphologic close
@@ -88,7 +88,7 @@ def crop_petri_dishes(masked_image, original_height, original_width, centers_x, 
     return cropped_images
 
 # Call the cropping function
-cropped_images = crop_petri_dishes(res, ogh, ogw, cx, cy, radii)
+# cropped_images = crop_petri_dishes(res, ogh, ogw, cx, cy, radii)
 
 
 cv2.imwrite("testmasked.jpeg", res)
