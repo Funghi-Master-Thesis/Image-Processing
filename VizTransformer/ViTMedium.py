@@ -1,16 +1,77 @@
+import os
+import PIL
+import cv2
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets.mnist import MNIST
-from torchvision.transforms import ToTensor
+from torchvision import datasets, transforms, models
+
 from tqdm import tqdm, trange
 
 np.random.seed(0)
 torch.manual_seed(0)
 
+class FungiDataset(torch.utils.data.Dataset): # inheritin from Dataset class
+    def __init__(self, csv_file, root_dir="", transform=None):
+        self.annotation_df = pd.read_csv(csv_file)
+        self.root_dir = root_dir # root directory of images, leave "" if using the image path column in the __getitem__ method
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.annotation_df) # return length (numer of rows) of the dataframe
+
+    def __getitem__(self, idx):
+        image_path = self.annotation_df.iloc[idx, 1] #use image path column (index = 1) in csv file
+        image = cv2.imread(image_path) # read image by cv2
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # convert from BGR to RGB for matplotlib
+        class_name = self.annotation_df.iloc[idx, 2] # use class name column (index = 2) in csv file
+        class_index = self.annotation_df.iloc[idx, 3] # use class index column (index = 3) in csv file
+        if self.transform:
+            image = self.transform(image)
+        return image, class_name, class_index
+    # def visualize(self, number_of_img=10, output_width=12, output_height=6):
+    #     plt.figure(figsize=(output_width, output_height))
+    #     for i in range(number_of_img):
+    #         idx = random.randint(0, len(self.annotation_df))
+    #         image, class_name, class_index = self.__getitem__(idx)
+    #         ax = plt.subplot(2, 5, i+1)  # create an axis
+    #         # create a name of the axis based on the img name
+    #         ax.title.set_text(class_name + '-' + str(class_index))
+    #         if self.transform == None:
+    #             plt.imshow(image)
+    #         else:
+    #             plt.imshow(image.permute(1, 2, 0))
+    #     plt.show()
+
+
+def build_csv(directory_string, output_csv_name):
+    """Builds a csv file for pytorch training from a directory of folders of images.
+    Install csv module if not already installed.
+    Args: 
+    directory_string: string of directory path, e.g. r'.\data\train'
+    output_csv_name: string of output csv file name, e.g. 'train.csv'
+    Returns:
+    csv file with file names, file paths, class names and class indices
+    """
+    import csv
+    directory = directory_string
+    class_lst = os.listdir(directory) #returns a LIST containing the names of the entries (folder names in this case) in the directory.
+    class_lst.sort() #IMPORTANT 
+    with open(output_csv_name, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(['file_name', 'file_path', 'class_name', 'class_index']) #create column names
+        for class_name in class_lst:
+            class_path = os.path.join(directory, class_name) #concatenates various path components with exactly one directory separator (‘/’) except the last path component. 
+            file_list = os.listdir(class_path) #get list of files in class folder
+            for file_name in file_list:
+                file_path = os.path.join(directory, class_name, file_name) #concatenate class folder dir, class name and file name
+                writer.writerow([file_name, file_path, class_name, class_lst.index(class_name)]) #write the file path and class name to the csv file
+    return
 
 def patchify(images, n_patches):
     n, c, h, w = images.shape
@@ -176,14 +237,25 @@ def get_positional_embeddings(sequence_length, d):
 
 
 def main():
+    train_folder = r'.\\Data\DataSet\training'
+    test_folder = r'.\Data\DataSet\test'    
     # Loading data
-    transform = ToTensor()
+    build_csv(train_folder, 'train.csv')
+    build_csv(test_folder, 'test.csv')
+    image_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        transforms.Resize((224, 224), interpolation=PIL.Image.BILINEAR)
+    ])
+
+    train_dataset = FungiDataset(csv_file='train.csv', root_dir="", transform=image_transform)
+    test_dataset = FungiDataset(csv_file='test.csv', root_dir="", transform=image_transform)
 
     train_set = MNIST(
-        root="./../datasets", train=True, download=True, transform=transform
+        root="./../datasets", train=True, download=True, transform=transforms.ToTensor()
     )
     test_set = MNIST(
-        root="./../datasets", train=False, download=True, transform=transform
+        root="./../datasets", train=False, download=True, transform=transforms.ToTensor()
     )
 
     train_loader = DataLoader(train_set, shuffle=True, batch_size=128)

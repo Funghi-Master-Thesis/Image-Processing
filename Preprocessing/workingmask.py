@@ -12,7 +12,7 @@ from skimage.draw import circle_perimeter
 from skimage.util import img_as_ubyte
 
 
-img = cv2.imread('Data/IBT23253/273.jpeg')
+img = cv2.imread('Data/IBT41269/328.jpeg')
 ogh, ogw, _ = img.shape
 ogimg = img.copy()
 img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
@@ -42,8 +42,8 @@ def canny_edge_detector(low_threshold, high_threshold):
     return edge_map
 
 # Example usage
-low_threshold = 5
-high_threshold = 100
+low_threshold = 10
+high_threshold = 80
 edge_map = canny_edge_detector(low_threshold, high_threshold)
 kernel = np.ones((3,3))
     # do a morphologic close
@@ -54,7 +54,7 @@ hough_radii = np.arange(75, 100)
 hough_res = hough_circle(edge_map, hough_radii)
 
 # Select the most prominent 3 circles
-_, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii, 50, 50, total_num_peaks=6)
+_, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii, 100, 100, total_num_peaks=6)
 
 h, w, _ = img.shape
 mask = np.zeros((ogimg.shape), np.uint8)
