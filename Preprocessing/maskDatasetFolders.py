@@ -47,6 +47,8 @@ for folder in os.listdir(data_folder_path):
         fungi_class = genus.strip() + '-' + species.strip()   
     number = folder.split()[1]
     dataset_output = os.path.join(base_path, output_folder, fungi_class)
+    
+    mask_array = []
     if not os.path.exists(dataset_output):
         os.mkdir(dataset_output)
     for filename in os.listdir(folder_path):
@@ -95,7 +97,7 @@ for folder in os.listdir(data_folder_path):
 
             h, w, _ = img.shape
             mask = np.zeros((ogimg.shape), np.uint8)
-        
+
     # Initialize a list to store the detected circles that don't overlap
             valid_circles = []
             for center_y, center_x, radius in zip(cy, cx, radii):
@@ -114,7 +116,8 @@ for folder in os.listdir(data_folder_path):
             #     if not overlap:
             #         valid_circles.append((center_x_scaled, center_y_scaled, radius_scaled))
             #         cv2.circle(mask, (center_x_scaled, center_y_scaled), radius_scaled, (255, 255, 255), -1)
-        
+            resized_mask = cv2.resize(mask, (0, 0), fx = 0.1, fy = 0.1)
+            mask_array.append(resized_mask)
             cv2.imwrite("mask.png", mask)
             mask2 = cv2.imread('mask.png',0)
             # # Original Image
@@ -122,6 +125,12 @@ for folder in os.listdir(data_folder_path):
             res = cv2.resize(res, (0, 0), fx = 0.1, fy = 0.1)
             
             cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
+    merged = np.zeros((img.shape), np.uint8)
+    for mask in mask_array:
+        merged = cv2.bitwise_or(merged, mask)
+    mask_array.clear()
+    cv2.imwrite(dataset_output + '\\' + ("00"+number+"_"+"MergedMask.png"), merged)
+    
     print("Finished with: " + folder)
 
 
