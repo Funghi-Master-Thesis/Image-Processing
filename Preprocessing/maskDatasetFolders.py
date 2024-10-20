@@ -24,13 +24,19 @@ def check_overlap(x1, y1, r1, x2, y2, r2, w, h):
     # Check if the circles overlap
     return distance < (r1 + r2)
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-data_folder_path = os.path.join(base_path, 'Data', 'AllData')
+data_folder_path = 'D:\\AllData'
 output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSet')
-info = pd.read_excel(r'E:\fredd\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
+info = pd.read_excel(r'C:\Users\Bruger\Documents\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 ibtinfo = info['IBT number']
+finished_ibt_detail = 'Preprocessing\\finishedibt.txt'
+finished_ibt = 'Preprocessing\\finishedibtjustnumber.txt'
+
+lines = open(finished_ibt).read().splitlines()
+
 
 for folder in os.listdir(data_folder_path):
-    folder_path = os.path.join(data_folder_path, folder, "RIS1_0_TL_20_preset")
+    folder_path = os.path.join(data_folder_path, folder)
+    folder_path = os.path.join(folder_path, os.listdir(folder_path)[0])
     test1 = ibtinfo.index[ibtinfo.str.contains(folder)]
     if(test1.size == 0):
         continue
@@ -46,17 +52,24 @@ for folder in os.listdir(data_folder_path):
     else:
         fungi_class = genus.strip() + '-' + species.strip()   
     number = folder.split()[1]
+    if number in lines:
+        print("Already processed " + number + ", skipping!")
+        continue
     dataset_output = os.path.join(base_path, output_folder, fungi_class)
     
     mask_array = []
     if not os.path.exists(dataset_output):
         os.mkdir(dataset_output)
+    print("Processing: " + number)
     for filename in os.listdir(folder_path):
+
         file_path = os.path.join(folder_path, filename)
         
         if filename.endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff')):
             print("Processing file: " + filename)
             img = cv2.imread(file_path)
+            if img is None:
+                continue
             ogh, ogw, _ = img.shape
             ogimg = img.copy()
             img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
@@ -125,11 +138,28 @@ for folder in os.listdir(data_folder_path):
             res = cv2.resize(res, (0, 0), fx = 0.1, fy = 0.1)
             
             cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
-    merged = np.zeros((img.shape), np.uint8)
+
+    merged = np.zeros((400, 600, 3), np.uint8)
+    merged = cv2.resize(merged, (400, 600))
     for mask in mask_array:
-        merged = cv2.bitwise_or(merged, mask)
+        test = mask
+        h1, w1, _ = test.shape
+        if h1 != 600 or w1 != 400:
+            test = cv2.resize(test, (400, 600))
+        merged = cv2.bitwise_or(merged, test)
+        
     mask_array.clear()
     cv2.imwrite(dataset_output + '\\' + ("00"+number+"_"+"MergedMask.png"), merged)
+    with open(finished_ibt_detail, 'r') as file:
+        content = file.read()
+    new = content +number + " - " + fungi_class + "\n"
+    with open(finished_ibt_detail, 'w') as file:
+        file.write(new)
+    with open(finished_ibt, 'r') as file:
+        content = file.read()
+    ibts = content + number + "\n"
+    with open(finished_ibt, 'w') as file:
+        file.write(ibts)
     
     print("Finished with: " + folder)
 
