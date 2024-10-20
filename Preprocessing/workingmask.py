@@ -18,6 +18,7 @@ ogimg = img.copy()
 img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
 cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 output=img.copy()
+
 def canny_edge_detector(low_threshold, high_threshold):
     # Read the image using OpenCV
 
@@ -41,16 +42,46 @@ def canny_edge_detector(low_threshold, high_threshold):
 
     return edge_map
 
-# Example usage
-low_threshold = 80
-high_threshold = 115
-edge_map = canny_edge_detector(low_threshold, high_threshold)
+def optimal_threshold():
+    # Step 4: Use Otsu's method to get the optimal threshold
+    blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
+    otsu_thresh_value, otsu_thresh_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Step 5: Apply Canny Edge Detection using Otsu's threshold
+    optimal_threshold = otsu_thresh_value / 2
+    lower_thresh = int(max(0, 0.5 * optimal_threshold))
+    upper_thresh = int(min(255, 1.5 * optimal_threshold))
+
+    return lower_thresh, upper_thresh
+
+
+def scaling_factor(image):
+   
+    # we know that in an image with six petridishes, each dish roughley takes up 1/6 of the iamge.
+    # therfore we can divide the image size by six and get the scaling factor for for the radii.
+    width, hight = image.shape
+    scaling = (1/6)
+    width = width * scaling
+    hight = hight * scaling
+
+    return int(width), int(hight)
+    
+
+# # Example usage
+# low_threshold = 80
+# high_threshold = 115
+
+low, high = optimal_threshold()
+
+edge_map = canny_edge_detector(low, high)
 kernel = np.ones((3,3))
     # do a morphologic close
 edge_map = cv2.morphologyEx(edge_map,cv2.MORPH_CLOSE, kernel)
 
+# 
+minRad, maxRad = scaling_factor(cimg)
 
-hough_radii = np.arange(75, 100)
+hough_radii = np.arange(maxRad, minRad)
 hough_res = hough_circle(edge_map, hough_radii)
 
 # Select the most prominent 3 circles
