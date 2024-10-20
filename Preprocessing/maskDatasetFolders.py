@@ -24,14 +24,66 @@ def check_overlap(x1, y1, r1, x2, y2, r2, w, h):
     # Check if the circles overlap
     return distance < (r1 + r2)
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-data_folder_path = 'D:\\AllData'
+# data_folder_path = 'D:\\AllData'
+data_folder_path = 'E:\\fredd\\Uni\\Thesis\\Image-Processing\\Data\\AllData'
+
 output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSet')
-info = pd.read_excel(r'C:\Users\Bruger\Documents\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
+# info = pd.read_excel(r'C:\Users\Bruger\Documents\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
+info = pd.read_excel(r'E:\fredd\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
+
 ibtinfo = info['IBT number']
 finished_ibt_detail = 'Preprocessing\\finishedibt.txt'
 finished_ibt = 'Preprocessing\\finishedibtjustnumber.txt'
 
 lines = open(finished_ibt).read().splitlines()
+
+
+def canny_edge_detector(low_threshold, high_threshold):
+    # Read the image using OpenCV
+
+    # Apply Gaussian smoothing
+    blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
+
+    # Compute gradients using Sobel operators
+    gradient_x = cv2.Sobel(blurred_image, cv2.CV_64F, 1, 0, ksize=3)
+    gradient_y = cv2.Sobel(blurred_image, cv2.CV_64F, 0, 1, ksize=3)
+
+    # Calculate gradient magnitude and direction
+    magnitude = np.sqrt(gradient_x**2 + gradient_y**2)
+    gradient_direction = np.arctan2(gradient_y, gradient_x) * (180 / np.pi)
+
+    # Non-maximum suppression
+    non_max_suppressed = cv2.Canny(blurred_image, low_threshold, high_threshold)
+
+    # Edge tracking by hysteresis
+    edge_map = cv2.Canny(blurred_image, low_threshold, high_threshold)
+
+
+    return edge_map
+
+def optimal_threshold():
+    # Step 4: Use Otsu's method to get the optimal threshold
+    blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
+    otsu_thresh_value, otsu_thresh_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Step 5: Apply Canny Edge Detection using Otsu's threshold
+    optimal_threshold = otsu_thresh_value / 2
+    lower_thresh = int(max(0, 0.5 * optimal_threshold))
+    upper_thresh = int(min(255, 1.5 * optimal_threshold))
+
+    return lower_thresh, upper_thresh
+
+
+def scaling_factor(image):
+   
+    # we know that in an image with six petridishes, each dish roughley takes up 1/6 of the iamge.
+    # therfore we can divide the image size by six and get the scaling factor for for the radii.
+    width, hight = image.shape
+    scaling = (1/6)
+    width = width * scaling
+    hight = hight * scaling
+
+    return int(width), int(hight)
 
 
 for folder in os.listdir(data_folder_path):
@@ -75,34 +127,17 @@ for folder in os.listdir(data_folder_path):
             img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
             cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
             output=img.copy()
-            low_threshold = 10
-            high_threshold = 80
-                # Read the image using OpenCV
+            low, high = optimal_threshold()
 
-                # Apply Gaussian smoothing
-            blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
-
-            # Compute gradients using Sobel operators
-            gradient_x = cv2.Sobel(blurred_image, cv2.CV_64F, 1, 0, ksize=3)
-            gradient_y = cv2.Sobel(blurred_image, cv2.CV_64F, 0, 1, ksize=3)
-
-            # Calculate gradient magnitude and direction
-            magnitude = np.sqrt(gradient_x**2 + gradient_y**2)
-            gradient_direction = np.arctan2(gradient_y, gradient_x) * (180 / np.pi)
-
-            # Non-maximum suppression
-            non_max_suppressed = cv2.Canny(blurred_image, low_threshold, high_threshold)
-
-            # Edge tracking by hysteresis
-            edge_map = cv2.Canny(blurred_image, low_threshold, high_threshold)
-
-            # Example usage
+            edge_map = canny_edge_detector(low, high)
             kernel = np.ones((3,3))
                 # do a morphologic close
             edge_map = cv2.morphologyEx(edge_map,cv2.MORPH_CLOSE, kernel)
 
+            # 
+            maxRad, minRad = scaling_factor(cimg)
 
-            hough_radii = np.arange(75, 100)
+            hough_radii = np.arange(minRad, maxRad)
             hough_res = hough_circle(edge_map, hough_radii)
 
             # Select the most prominent 3 circles
@@ -111,24 +146,13 @@ for folder in os.listdir(data_folder_path):
             h, w, _ = img.shape
             mask = np.zeros((ogimg.shape), np.uint8)
 
-    # Initialize a list to store the detected circles that don't overlap
-            valid_circles = []
             for center_y, center_x, radius in zip(cy, cx, radii):
+                reduction = 0
+                if(radius > maxRad - 20):
+                    reduction = radius - (maxRad - 20)
                 cv2.circle(mask, ((center_x*10), (center_y*10)), ((radius-20)*10), (255, 255, 255), -1)
-            # Loop through detected circles
-            # for center_y, center_x, radius in zip(cy, cx, radii):
-            #     center_x_scaled, center_y_scaled, radius_scaled = center_x * 10, center_y * 10, radius * 10
-            #     # Check overlap with previously added circles
-            #     overlap = False
-            #     for valid_circle in valid_circles:
-            #         if check_overlap(center_x_scaled, center_y_scaled, radius_scaled, valid_circle[0], valid_circle[1], valid_circle[2], ogw, ogh):
-            #             overlap = True
-            #             break
                 
-            #     # If no overlap, add the circle to the valid list and draw it
-            #     if not overlap:
-            #         valid_circles.append((center_x_scaled, center_y_scaled, radius_scaled))
-            #         cv2.circle(mask, (center_x_scaled, center_y_scaled), radius_scaled, (255, 255, 255), -1)
+
             resized_mask = cv2.resize(mask, (0, 0), fx = 0.1, fy = 0.1)
             mask_array.append(resized_mask)
             cv2.imwrite("mask.png", mask)

@@ -12,7 +12,7 @@ from skimage.draw import circle_perimeter
 from skimage.util import img_as_ubyte
 
 
-img = cv2.imread('Data/RIS1_0_TL_20_preset/329 copy.jpeg')
+img = cv2.imread('Data/AllData/IBT 41554/RIS1_0_TL_20_preset/280.jpeg')
 ogh, ogw, _ = img.shape
 ogimg = img.copy()
 img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
@@ -79,9 +79,9 @@ kernel = np.ones((3,3))
 edge_map = cv2.morphologyEx(edge_map,cv2.MORPH_CLOSE, kernel)
 
 # 
-minRad, maxRad = scaling_factor(cimg)
+maxRad, minRad = scaling_factor(cimg)
 
-hough_radii = np.arange(maxRad, minRad)
+hough_radii = np.arange(minRad, maxRad)
 hough_res = hough_circle(edge_map, hough_radii)
 
 # Select the most prominent 3 circles
@@ -90,7 +90,10 @@ _, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii, 100, 100, total_nu
 h, w, _ = img.shape
 mask = np.zeros((ogimg.shape), np.uint8)
 for center_y, center_x, radius in zip(cy, cx, radii):
-    cv2.circle(mask, ((center_x*10), (center_y*10)), ((radius-20)*10), (255, 255, 255), -1)
+    reduction = 0
+    if(radius > maxRad - 20):
+        reduction = radius - (maxRad - 20)
+    cv2.circle(mask, ((center_x*10), (center_y*10)), ((radius-reduction)*10), (255, 255, 255), -1)
 
 cv2.imwrite("mask.png", mask)
 
