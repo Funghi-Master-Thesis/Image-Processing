@@ -100,8 +100,15 @@ for folder in os.listdir(data_folder_path):
     if not os.path.exists(dataset_output):
         os.mkdir(dataset_output)
     print("Processing: " + number)
-    first_image = True
-    first_image_mask = None
+    mask = np.zeros((600, 400, 3), np.uint8)
+    xrange = [100, 300, 500]
+    
+    for i in range(3):
+        cv2.circle(mask, (100, xrange[i]), 75, (255, 255, 255), -1)
+        cv2.circle(mask, (300, xrange[i]), 75, (255, 255, 255), -1)
+    mask = cv2.resize(mask, (400,600))
+    cv2.imwrite("mask.png", mask)
+    mask = cv2.imread('mask.png',0)
     for filename in os.listdir(folder_path):
 
         file_path = os.path.join(folder_path, filename)
@@ -112,71 +119,14 @@ for folder in os.listdir(data_folder_path):
                 continue
             ogh, ogw, _ = img.shape
             ogimg = img.copy()
-            img = cv2.resize(img, (0, 0), fx = 0.1, fy = 0.1)
-            cimg = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            output=img.copy()
-            if first_image:
-                low, high = optimal_threshold()
-
-                edge_map = canny_edge_detector(low, high)
-                kernel = np.ones((3,3))
-                    # do a morphologic close
-                edge_map = cv2.morphologyEx(edge_map,cv2.MORPH_CLOSE, kernel)
-
-                # 
-                maxRad, minRad = scaling_factor(cimg)
-
-                hough_radii = np.arange(minRad, maxRad)
-                hough_res = hough_circle(edge_map, hough_radii)
-
-                # Select the most prominent 3 circles
-                _, cx, cy, radii = hough_circle_peaks(hough_res, hough_radii, 100, 100, total_num_peaks=6)
-
-                h, w, _ = img.shape
-                mask = np.zeros((ogimg.shape), np.uint8)
-
-                for center_y, center_x, radius in zip(cy, cx, radii):
-                    reduction = 0
-                    if(radius > maxRad - 20):
-                        reduction = radius - (maxRad - 20)
-                    cv2.circle(mask, ((center_x*10), (center_y*10)), ((radius-reduction)*10), (255, 255, 255), -1)
-                    
+            img = cv2.resize(img, (400, 600))
+            res = cv2.bitwise_and(img,img,mask = mask)
                 # For comparison
-                resized_mask = cv2.resize(mask, (0, 0), fx = 0.1, fy = 0.1)
-                first_image_mask = mask
-                mask_array.append(resized_mask)
+            cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
+        break
                 
-                cv2.imwrite("mask.png", mask)
-                mask2 = cv2.imread('mask.png',0)
-                # # Original Image
-                res = cv2.bitwise_and(ogimg,ogimg,mask = mask2)
-                res = cv2.resize(res, (0, 0), fx = 0.1, fy = 0.1)
-                
-                cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
-                first_image = False
-            else:
-                # For comparison
-                resized = cv2.resize(first_image_mask, (0, 0), fx = 0.1, fy = 0.1)
-                mask_array.append(resized)
-                
-                mask2 = cv2.imread('mask.png',0)
-                mask2 = cv2.resize(mask2, (ogw, ogh))
-                res = cv2.bitwise_and(ogimg,ogimg,mask = mask2)
-                res = cv2.resize(res, (0, 0), fx = 0.1, fy = 0.1)
-                
-                cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
-                
-    merged = np.zeros((400, 600, 3), np.uint8)
-    merged = cv2.resize(merged, (400, 600))
-    for mask in mask_array:
-        test = mask
-        h1, w1, _ = test.shape
-        if h1 != 600 or w1 != 400:
-            test = cv2.resize(test, (400, 600))
-        merged = cv2.bitwise_or(merged, test)
-        
-    mask_array.clear()
-    cv2.imwrite(dataset_output + '\\' + ("00"+number+"_"+"MergedMask.png"), merged)
+
+
     with open(finished_ibt_detail, 'r') as file:
         content = file.read()
     new = content +number + " - " + fungi_class + "\n"

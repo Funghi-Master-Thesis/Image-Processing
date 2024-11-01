@@ -105,7 +105,7 @@
 41554 - Phoma-sorghina
 41556 - Phoma-pomorum
 41642 - Nigrospora-oryzae
-41688 - BAD DATA
+41688 - Pesisa-ostracoderma
 41758 - Hypocrea-pulvinata
 41850 - Hypocrea-pulvinata
 41891 - Cladosporium-delicatulum
@@ -144,4 +144,3 @@
 9002 - Phoma-epicoccina
 9051 - Ulocladium-chartarum
 9212 - Asteromyces-cruciatus
-41554 - Phoma-sorghina
