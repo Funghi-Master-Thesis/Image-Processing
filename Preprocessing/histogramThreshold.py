@@ -39,11 +39,11 @@ def plot_histogram_with_thresholds(image):
     
     # Highlight significant peaks
     for peak in significant_peaks:
-        plt.axvline(peak, color='blue', linestyle='--', label=f'Peak: {peak}')
+        plt.axvline(peak, color='blue', linestyle='--', label=f'Peak: {peak} ({int(smoothed_hist[peak])})')
 
     # Highlight all valleys
     for valley in all_valleys:
-        plt.axvline(valley, color='orange', linestyle='--', label=f'Valley: {valley}')
+        plt.axvline(valley, color='orange', linestyle='--', label=f'Valley: {valley} ({int(smoothed_hist[valley])})')
 
     plt.title('Histogram of Pixel Intensities with Detected Peaks and Valleys')
     plt.xlabel('Pixel Intensity')
@@ -52,7 +52,12 @@ def plot_histogram_with_thresholds(image):
     plt.grid()
     plt.show()
 
-    return significant_peaks, all_valleys, gray_image
+    # Get the pixel intensities and their corresponding frequencies
+    peak_intensities = [(peak, smoothed_hist[peak]) for peak in significant_peaks]
+    valley_intensities = [(valley, smoothed_hist[valley]) for valley in all_valleys]
+
+    return peak_intensities, valley_intensities, gray_image
+
 
 # Function to apply Canny edge detection
 def apply_canny_edge_detection(image, low_threshold, high_threshold):
@@ -113,5 +118,26 @@ for i, low_threshold in enumerate(significant_peaks):
         edge_maps.append(edge_map)
         threshold_pairs.append((low_threshold, high_threshold))
 
+
+def select_highest_peak_valley(peak_intensities, valley_intensities):
+    # Find the peak with the highest intensity
+    highest_peak = max(peak_intensities, key=lambda x: x[1]) if peak_intensities else None
+    
+    # Find the valley with the highest intensity
+    highest_valley = max(valley_intensities, key=lambda x: x[1]) if valley_intensities else None
+
+    return highest_peak, highest_valley
+
+# After plotting the histogram and getting intensities
+peak_intensities, valley_intensities, gray_image = plot_histogram_with_thresholds(user_image)
+
+# Select the highest peak and valley
+highest_peak, highest_valley = select_highest_peak_valley(peak_intensities, valley_intensities)
+
+print("Highest Peak:", highest_peak)  # (pixel intensity, frequency)
+print("Highest Valley:", highest_valley)  # (pixel intensity, frequency)
+
+
 # Display edge maps one at a time
 display_edge_maps(edge_maps, threshold_pairs, gray_image)
+
