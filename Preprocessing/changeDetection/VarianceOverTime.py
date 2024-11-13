@@ -188,7 +188,9 @@ def extract_significant_images(image_folder, baseline_image_path, area_threshold
     significant_images = []
 
     image_files = sorted(os.listdir(image_folder), key=natural_sort_key)
-
+    baseline_image_name = os.path.basename(baseline_image_path)
+    baseline_index = image_files.index(baseline_image_name) if baseline_image_name in image_files else -1
+    image_files = image_files[baseline_index + 1:]  # Exclude images before the baseline
     for image_name in image_files:
         image_path = os.path.join(image_folder, image_name)
         image = load_and_process(image_path)
@@ -215,16 +217,16 @@ def extract_significant_images(image_folder, baseline_image_path, area_threshold
     return significant_images
 
 
-image_folder = 'E:/fredd/Uni/Thesis/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
-# image_folder = 'D:/gitRepos/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
-baseline_image_path = find_suitable_baseline(image_folder)
+# image_folder = 'E:/fredd/Uni/Thesis/Image-Processing/Data/DataSetUniform/DataSet/Penicillium-arizonense'
+# # image_folder = 'D:/gitRepos/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
+# baseline_image_path = find_suitable_baseline(image_folder)
 
-significant_images = extract_significant_images(
-    image_folder,
-    baseline_image_path,
-    area_threshold=30,   # Adjust based on observed growth sizes
-    visualize=True # change for vizual output
-)
+# significant_images = extract_significant_images(
+#     image_folder,
+#     baseline_image_path,
+#     area_threshold=30,   # Adjust based on observed growth sizes
+#     visualize=True # change for vizual output
+# )
 
-print(f"Indices of images with significant growth: {significant_images}")
+# print(f"Indices of images with significant growth: {significant_images}")
 

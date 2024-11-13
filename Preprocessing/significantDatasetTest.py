@@ -19,12 +19,12 @@ output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSetSig')
 info = pd.read_excel(r'E:\fredd\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 
 ibtinfo = info['IBT number']
-finished_ibt = 'Preprocessing\\filters\\significantibtfinished.txt'
-exclude_list = 'Preprocessing\\filters\\exclude.txt'
+finished_ibt_detail = 'Preprocessing\\finishedibt.txt'
+finished_ibt = 'Preprocessing\\finishedibtjustnumber.txt'
+
+lines = open(finished_ibt).read().splitlines()
 
 
-
-identified_blops = [50, 100, 150]
 def extract_significant_images(image_folder, baseline_image_path, area_threshold,   visualize=False):
     """Process a folder of images to detect significant changes from a baseline image."""
 
@@ -66,7 +66,7 @@ def get_significant_image_array(folder_path):
         image_folder,
         baseline_image_path,
         area_threshold=30,   # Adjust based on observed growth sizes
-        visualize=False# change for vizual output
+        visualize=True# change for vizual output
     )
     return significant_images
 
@@ -91,17 +91,15 @@ def find_suitable_baseline(folder_path):
         print(f"Processing image {image_path}")
         
         # Use test_differences to check for dew presence
-        for i in identified_blops:
-            
-            dew_present = vod.test_differences(image_path, identified_blobs=i)
-            if not dew_present:
-                return image_path
+        dew_present = vod.test_differences(image_path, identified_blobs=100)
+        
         # If no dew is present, return this image as the baseline
+        if not dew_present:
+            return image_path
+    
+    
     raise ValueError("No suitable baseline image found." + image_path)
 
-lines = open(finished_ibt).read().splitlines()
-exclude_list = open(exclude_list).read().splitlines()
-lines.extend(exclude_list)
 for folder in os.listdir(data_folder_path):
     folder_path = os.path.join(data_folder_path, folder)
     ibtmap = {}
@@ -119,21 +117,9 @@ for folder in os.listdir(data_folder_path):
     # significant_image_indices = vod.get_significant_image_array(folder_path)
             
     for ibt in ibtmap:
-        if ibt in lines:
-            print("Already processed " + ibt + ", skipping!")
-            continue
-        test = get_significant_image_array(ibtmap[ibt])
-        ibt_list = sorted(ibtmap[ibt], key=vod.natural_sort_key)
-
-        for image in test:
-            if ibt_list.__len__() <= image:
-                break
-            shutil.copy(ibt_list[image-1], dataset_output)
-        with open(finished_ibt, 'r') as file:
-            content = file.read()
-        ibts = content + ibt + "\n"
-        with open(finished_ibt, 'w') as file:
-            file.write(ibts)
+        if ibt == "36710":
+            test = get_significant_image_array(ibtmap[ibt])
+            cv2.waitKey(0)
     print("Finished processing: " + folder)
 
             
