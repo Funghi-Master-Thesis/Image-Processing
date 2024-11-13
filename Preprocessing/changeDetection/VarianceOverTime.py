@@ -215,7 +215,8 @@ def extract_significant_images(image_folder, baseline_image_path, area_threshold
     return significant_images
 
 
-image_folder = 'D:/gitRepos/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
+image_folder = 'E:/fredd/Uni/Thesis/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
+# image_folder = 'D:/gitRepos/Image-Processing/Data/DataSetUniform/DataSet/Acremonium-strictum'
 baseline_image_path = find_suitable_baseline(image_folder)
 
 significant_images = extract_significant_images(
