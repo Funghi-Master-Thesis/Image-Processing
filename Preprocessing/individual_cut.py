@@ -16,16 +16,16 @@ def apply_circular_mask(image, scale_factor=0.775):
     masked_image = cv2.bitwise_and(image, image, mask=mask)
     return masked_image
 
-def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None):
+def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None, ibt_number=''):
     """Extract each petri dish from the image and save them with labels."""
-    print(f"Processing image: {image_path}")
+    # print(f"Processing image: {image_path}")
     image = cv2.imread(image_path)
     if image is None:
         print(f"Failed to load image: {image_path}")
         return
 
     height, width, _ = image.shape
-    print(f"Image dimensions: {width}x{height}")
+    # print(f"Image dimensions: {width}x{height}")
 
     rows, cols = 3, 2
     petri_height = height // rows
@@ -45,25 +45,29 @@ def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None):
 
             petri_dish = apply_circular_mask(petri_dish)
 
-            label = f"{os.path.splitext(os.path.basename(image_path))[0]}_row_{row+1}_col_{col+1}.jpg"
+            label = f"{ibt_number}_{os.path.splitext(os.path.basename(image_path))[0]}_row_{row+1}_col_{col+1}.jpg"
             output_path = os.path.join(output_folder, label)
             success = cv2.imwrite(output_path, petri_dish)
-            if success:
-                print(f"Saved cropped image: {output_path}")
-            else:
+            if not success:
                 print(f"Failed to save cropped image: {output_path}")
 
-# Ensure the output folder exists
-os.makedirs(output_folder, exist_ok=True)
-print(f"Output folder created: {output_folder}")
-print(f"Output folder path: {output_folder}")
+def main():
+    os.makedirs(output_folder, exist_ok=True)
+    print(f"Output folder created: {output_folder}")
+    print(f"Output folder path: {output_folder}")
 
-# Process each image in the data folder
-print(f"Processing images in folder: {data_folder_path}")
-for image_file in os.listdir(data_folder_path):
-    print(f"Found file: {image_file}")
-    if image_file.lower().endswith('.jpg') or image_file.lower().endswith('.jpeg'):
-        image_path = os.path.join(data_folder_path, image_file)
-        print(f"Processing file: {image_path}")
-        extract_and_save_petri_dishes(image_path, output_folder, resize_dim=(244, 244))  # Adjust resize_dim as needed
-print("Processing complete.")
+    # Process each image in the data folder
+    print(f"Processing images in folder: {data_folder_path}")
+    for image_file in os.listdir(data_folder_path):
+        print(f"Found file: {image_file}")
+        if image_file.lower().endswith('.jpg') or image_file.lower().endswith('.jpeg'):
+            image_path = os.path.join(data_folder_path, image_file)
+            print(f"Processing file: {image_path}")
+            extract_and_save_petri_dishes(image_path, output_folder, resize_dim=(244, 244))  # Adjust resize_dim as needed
+    print("Processing complete.")
+
+# Using the special variable 
+# __name__
+if __name__=="__main__":
+    main()
+# Ensure the output folder exists
