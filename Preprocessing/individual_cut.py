@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-data_folder_path = 'D:\\gitRepos\\Image-Processing\\Data\\TestSet'
+data_folder_path = 'D:\\gitRepos\\Image-Processing\\Data\\Testset'
 output_folder = os.path.join(base_path, 'Data', 'Output', 'DataCutTest')
 
 def apply_circular_mask(image, scale_factor=0.775):
@@ -15,6 +15,15 @@ def apply_circular_mask(image, scale_factor=0.775):
     cv2.circle(mask, center, radius, (255, 255, 255), -1)
     masked_image = cv2.bitwise_and(image, image, mask=mask)
     return masked_image
+
+def cut_to_boundingbox(image):
+    """Cut the image to the bounding box of the circle."""
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
+    x, y, w, h = cv2.boundingRect(thresh)
+    image = image[y:y+h, x:x+w]
+    return image
+
 
 def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None):
     """Extract each petri dish from the image and save them with labels."""
@@ -39,19 +48,21 @@ def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None):
             y_end = y_start + petri_height
 
             petri_dish = image[y_start:y_end, x_start:x_end]
+            petri_dish = apply_circular_mask(petri_dish)
+            petri_dish = cut_to_boundingbox(petri_dish)
 
+            # Resize if resize_dim is provided
             # if resize_dim:
             petri_dish = cv2.resize(petri_dish, resize_dim)
-
-            petri_dish = apply_circular_mask(petri_dish)
 
             label = f"{os.path.splitext(os.path.basename(image_path))[0]}_row_{row+1}_col_{col+1}.jpg"
             output_path = os.path.join(output_folder, label)
             success = cv2.imwrite(output_path, petri_dish)
             if success:
-                print(f"Saved cropped image: {output_path}")
+                print(f"Saved: {output_path}")
             else:
-                print(f"Failed to save cropped image: {output_path}")
+                print(f"Failed to save: {output_path}")
+
 
 # Ensure the output folder exists
 os.makedirs(output_folder, exist_ok=True)
