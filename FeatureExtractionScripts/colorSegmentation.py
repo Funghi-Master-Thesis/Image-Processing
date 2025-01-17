@@ -1,5 +1,7 @@
+import os
+import pandas as pd
+import csv
 from scipy import ndimage as ndi
-import matplotlib.pyplot as plt
 from skimage.morphology import disk
 from skimage.segmentation import watershed
 from skimage.filters import rank
@@ -41,7 +43,6 @@ def filter_segments(labels, imageRaw, area_threshold):
     segments = []
     filtered_labels = np.zeros_like(labels)
     average_colors = []
-    most_occuring_colors = []
     all_segment_pixels = []
     
     for label in unique_labels:
@@ -58,57 +59,48 @@ def filter_segments(labels, imageRaw, area_threshold):
                 filtered_labels[mask] = label
                 segments.append((label, area))
                 average_colors.append((label, average_color))
-                most_occuring_colors.append((label, most_common_color))
                 all_segment_pixels.extend(segment_pixels)
     
     total_average_color = np.mean(all_segment_pixels, axis=0)
-    return segments, average_colors, most_occuring_colors, total_average_color, filtered_labels
+    return segments, average_colors, total_average_color, filtered_labels
 
-def display_results(gray_image, fungal_mask, markers, filtered_labels, vizualize=False):
-    if vizualize:
-        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8, 8), sharex=True, sharey=True)
-        ax = ax.ravel()
-
-        ax[0].imshow(gray_image, cmap=plt.cm.gray)
-        ax[0].set_title("Original")
-
-        ax[1].imshow(fungal_mask, cmap=plt.cm.gray)
-        ax[1].set_title("Fungal Mask")
-
-        ax[2].imshow(markers, cmap=plt.cm.nipy_spectral)
-        ax[2].set_title("Markers")
-
-        ax[3].imshow(gray_image, cmap=plt.cm.gray)
-        ax[3].imshow(filtered_labels, cmap=plt.cm.nipy_spectral, alpha=0.5)
-        ax[3].set_title("Filtered Segments")
-
-        for a in ax:
-            a.axis('off')
-
-        fig.tight_layout()
-        plt.show()
+def build_annotation_dataframe(image_location, annot_location, output_csv_name):
+    """Builds dataframe and csv file for pytorch training from a directory of folders of images.
+    Install csv module if not already installed.
+    Args: 
+    image_location: image directory path, e.g. r'.\data\train'
+    annot_location: annotation directory path
+    output_csv_name: string of output csv file name, e.g. 'train.csv'
+    Returns:
+    csv file with file names, file paths, class names and class indices
+    """
+    class_lst = os.listdir(image_location)  # returns a LIST containing the names of the entries (folder names in this case) in the directory.
+    class_lst.sort()  # IMPORTANT
+    with open(os.path.join(annot_location, output_csv_name), 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        writer.writerow(['file_name', 'file_path', 'class_name', 'class_index', 'average_color'])  # create column names
+        for class_name in class_lst:
+            class_path = os.path.join(image_location, class_name)  # concatenates various path components with exactly one directory separator (‘/’) except the last path component.
+            file_list = os.listdir(class_path)  # get list of files in class folder
+            for file_name in file_list:
+                file_path = os.path.join(image_location, class_name, file_name)  # concatenate class folder dir, class name and file name
+                imageRaw = read_image(file_path)
+                background_colors = [np.array([40, 75, 165]), np.array([200, 200, 200])]  # Replace with the actual background colors
+                tolerance = 20  # Adjust the tolerance as needed
+                area_threshold = 150  # Adjust this value as needed
+                fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
+                masked_image = apply_mask(imageRaw, fungal_mask)
+                labels = segment_image(masked_image)
+                segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
+                writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color])
+    return pd.read_csv(os.path.join(annot_location, output_csv_name))
 
 def main():
-    image_path = 'D:\\gitRepos\\Image-Processing\\Data\\DataSetUniform\\DataSet\\Acremonium\\41217_239.jpeg'
-    background_colors = [np.array([40, 75, 165]), np.array([200, 200, 200])]  # orange , purple
-    tolerance = 20  
-    area_threshold = 150  
-
-    imageRaw = read_image(image_path)
-    fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
-    masked_image = apply_mask(imageRaw, fungal_mask)
-    labels = segment_image(masked_image)
-    segments, average_colors, most_occuring_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
-
-    print(f"Number of segments: {len(segments)}")
-    print("Segments (label, area, average color, most occurring color):")
-    for segment, avg_color, most_color in zip(segments, average_colors, most_occuring_colors):
-        print(f"Label: {segment[0]}, Area: {segment[1]}, Average Color: {avg_color}, Most Occurring Color: {most_color}")
-
-    print(f"Total Average Color from all segments: {total_average_color}")
-
-    display_results(rgb2gray(masked_image), fungal_mask, labels, filtered_labels, True
-    )
+    image_location = 'D:\\gitRepos\\Image-Processing\\Data\\DataSetUniform\\DataSet'
+    annot_location = 'D:\\gitRepos\\Image-Processing\\Annotations'
+    output_csv_name = 'ColorFeature.csv'
+    df = build_annotation_dataframe(image_location, annot_location, output_csv_name)
+    print(df)
 
 if __name__ == "__main__":
     main()
