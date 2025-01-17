@@ -38,6 +38,9 @@ def segment_image(image):
     labels = watershed(gradient, markers)
     return labels
 
+def rgb_to_hex(r, g, b):
+    return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
+
 def filter_segments(labels, imageRaw, area_threshold):
     unique_labels = np.unique(labels)
     segments = []
@@ -62,7 +65,8 @@ def filter_segments(labels, imageRaw, area_threshold):
                 all_segment_pixels.extend(segment_pixels)
     
     total_average_color = np.mean(all_segment_pixels, axis=0)
-    return segments, average_colors, total_average_color, filtered_labels
+    total_average_color_hex = rgb_to_hex(*total_average_color)
+    return segments, average_colors, total_average_color_hex, filtered_labels
 
 def build_annotation_dataframe(image_location, annot_location, output_csv_name):
     """Builds dataframe and csv file for pytorch training from a directory of folders of images.
