@@ -86,7 +86,11 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
         for class_name in class_lst:
             class_path = os.path.join(image_location, class_name)  # concatenates various path components with exactly one directory separator (‘/’) except the last path component.
             file_list = os.listdir(class_path)  # get list of files in class folder
+            print(f"Working on: {class_name}")
+            i = 0
+            file_count = len(file_list)
             for file_name in file_list:
+                
                 file_path = os.path.join(image_location, class_name, file_name)  # concatenate class folder dir, class name and file name
                 imageRaw = read_image(file_path)
                 background_colors = [np.array([40, 75, 165]), np.array([200, 200, 200])]  # Replace with the actual background colors
@@ -97,13 +101,17 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
                 labels = segment_image(masked_image)
                 segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
                 writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color])
+                percentage_done = (int((i / file_count)*100))
+                i = i + 1
+                if(percentage_done%20 == 0):
+                    print(f"{percentage_done}% completed")
+                
     return pd.read_csv(os.path.join(annot_location, output_csv_name))
 
 def main():
-    image_location = 'D:\\gitRepos\\Image-Processing\\Data\\DataSetUniform\\DataSet'
-    annot_location = 'D:\\gitRepos\\Image-Processing\\Annotations'
+    image_location = 'E:/fredd/Uni/Thesis/Datasets/AllDatasets/DataSetCutLast2Days'
     output_csv_name = 'ColorFeature.csv'
-    df = build_annotation_dataframe(image_location, annot_location, output_csv_name)
+    df = build_annotation_dataframe(image_location, image_location, output_csv_name)
     print(df)
 
 if __name__ == "__main__":
