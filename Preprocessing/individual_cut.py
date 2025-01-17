@@ -6,7 +6,7 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 data_folder_path = 'D:\\gitRepos\\Image-Processing\\Data\\Testset'
 output_folder = os.path.join(base_path, 'Data', 'Output', 'DataCutTest')
 
-def apply_circular_mask(image, scale_factor=0.775):
+def apply_circular_mask(image, scale_factor=0.675):
     """Apply a circular mask to the image with an adjustable scale factor."""
     height, width = image.shape[:2]
     mask = np.zeros((height, width), dtype=np.uint8)
@@ -49,9 +49,11 @@ def extract_and_save_petri_dishes(image_path, output_folder, resize_dim=None, ib
             petri_dish = image[y_start:y_end, x_start:x_end]
             petri_dish = apply_circular_mask(petri_dish)
             petri_dish = cut_to_boundingbox(petri_dish)
-
             # Resize if resize_dim is provided
-            # if resize_dim:
+           
+            #If the array is empty continue to the next iteration
+            if petri_dish.size == 0:
+                continue
             petri_dish = cv2.resize(petri_dish, resize_dim)
 
 
