@@ -10,6 +10,8 @@ from skimage.color import rgb2gray
 import numpy as np
 import cv2
 from collections import Counter
+exclude = 'FeatureExtractionScripts\\filter\\exclude.txt'
+exclude_l = open(exclude).read().splitlines()
 
 def read_image(path):
     image = cv2.imread(path)
@@ -41,7 +43,7 @@ def segment_image(image):
 def rgb_to_hex(r, g, b):
     return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
 
-def filter_segments(labels, imageRaw, area_threshold):
+def filter_segments(labels, imageRaw, area_threshold, file_name):
     unique_labels = np.unique(labels)
     segments = []
     filtered_labels = np.zeros_like(labels)
@@ -65,7 +67,10 @@ def filter_segments(labels, imageRaw, area_threshold):
                 all_segment_pixels.extend(segment_pixels)
     
     total_average_color = np.mean(all_segment_pixels, axis=0)
-    total_average_color_hex = rgb_to_hex(*total_average_color)
+    try:
+        total_average_color_hex = rgb_to_hex(*total_average_color)
+    except:
+        print(file_name)
     return segments, average_colors, total_average_color_hex, filtered_labels
 
 def build_annotation_dataframe(image_location, annot_location, output_csv_name):
@@ -84,6 +89,9 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(['file_name', 'file_path', 'class_name', 'class_index', 'average_color'])  # create column names
         for class_name in class_lst:
+            if class_name in exclude_l:
+                print("Already processed " + class_name + ", skipping!")
+                continue
             class_path = os.path.join(image_location, class_name)  # concatenates various path components with exactly one directory separator (‘/’) except the last path component.
             file_list = os.listdir(class_path)  # get list of files in class folder
             print(f"Working on: {class_name}")
@@ -99,18 +107,24 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
                 fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
                 masked_image = apply_mask(imageRaw, fungal_mask)
                 labels = segment_image(masked_image)
-                segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
+                segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold, file_name)
                 writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color])
                 percentage_done = (int((i / file_count)*100))
                 i = i + 1
                 if(percentage_done%20 == 0):
                     print(f"{percentage_done}% completed")
+            with open(exclude, 'r') as file:
+                content = file.read()
+            ibts = content + class_name + "\n"
+            with open(exclude, 'w') as file:
+                file.write(ibts)
                 
     return pd.read_csv(os.path.join(annot_location, output_csv_name))
 
 def main():
     image_location = 'E:/fredd/Uni/Thesis/Datasets/AllDatasets/DataSetCutLast2Days'
     output_csv_name = 'ColorFeature.csv'
+    
     df = build_annotation_dataframe(image_location, image_location, output_csv_name)
     print(df)
 
