@@ -23,21 +23,27 @@ def create_background_mask(image, background_colors, tolerance):
     return ~background_mask
 def apply_mask(image, mask):
     return image * np.dstack([mask] * 3)
+
 def segment_image(image):
     gray_image = rgb2gray(image)
-    denoised = rank.median(img_as_ubyte(gray_image), disk(2))
-    markers = rank.gradient(denoised, disk(5)) < 10
+    denoised = rank.median(img_as_ubyte(gray_image), disk(5))
+    markers = rank.gradient(denoised, disk(3)) < 10
     markers = ndi.label(markers)[0]
     gradient = rank.gradient(denoised, disk(2))
     labels = watershed(gradient, markers)
     return labels
-def filter_segments(labels, imageRaw, area_threshold):
+
+def rgb_to_hex(r, g, b):
+    return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
+
+def filter_segments(labels, imageRaw, area_threshold, black_pixel_threshold=0.1):
     unique_labels = np.unique(labels)
     segments = []
     filtered_labels = np.zeros_like(labels)
     average_colors = []
-    most_occuring_colors = []
     all_segment_pixels = []
+    total_area = 0
+    weighted_sum = np.zeros(3)
     
     for label in unique_labels:
         if label == 0:
@@ -46,6 +52,10 @@ def filter_segments(labels, imageRaw, area_threshold):
         area = np.sum(mask)
         if area >= area_threshold:
             segment_pixels = imageRaw[mask]
+            black_pixels = np.sum(np.all(segment_pixels == [0, 0, 0], axis=1))
+            black_pixel_ratio = black_pixels / area
+            if black_pixel_ratio > black_pixel_threshold:
+                continue  # Skip segments with too many black pixels
             average_color = np.mean(segment_pixels, axis=0)
             segment_pixels_tuple = [tuple(pixel) for pixel in segment_pixels]
             most_common_color = Counter(segment_pixels_tuple).most_common(1)[0][0]
@@ -53,11 +63,14 @@ def filter_segments(labels, imageRaw, area_threshold):
                 filtered_labels[mask] = label
                 segments.append((label, area))
                 average_colors.append((label, average_color))
-                most_occuring_colors.append((label, most_common_color))
                 all_segment_pixels.extend(segment_pixels)
+                weighted_sum += average_color * area
+                total_area += area
     
-    total_average_color = np.mean(all_segment_pixels, axis=0)
-    return segments, average_colors, most_occuring_colors, total_average_color, filtered_labels
+    total_average_color = weighted_sum / total_area if total_area > 0 else np.zeros(3)
+    total_average_color_hex = rgb_to_hex(*total_average_color)
+    return segments, average_colors, total_average_color_hex, filtered_labels
+
 def display_results(gray_image, fungal_mask, markers, filtered_labels, vizualize=False):
     if vizualize:
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8, 8), sharex=True, sharey=True)
@@ -75,23 +88,26 @@ def display_results(gray_image, fungal_mask, markers, filtered_labels, vizualize
             a.axis('off')
         fig.tight_layout()
         plt.show()
+
 def main():
-    base_path = 'E:\\fredd\\Uni\\Thesis\\Datasets\\AllDatasets\\DataSetCutLast2Days'
-    image_path = base_path + '\\Aspergillus-arachidicola\\27190_218_row_2_col_2.jpg'
-    background_colors = [np.array([40, 75, 165]), np.array([200, 200, 200])]  # orange , purple
+    image_path = 'D:\\gitRepos\\Image-Processing\\Data\\DataSetCutLast2Days\\Aspergillus-aculeatinus\\32384_240_row_3_col_1.jpg'
+    background_colors = [np.array([75, 40, 145]), np.array([42, 131, 214])]  # purple, orange
     tolerance = 20  
-    area_threshold = 150  
+    area_threshold = 100  
     imageRaw = read_image(image_path)
     fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
     masked_image = apply_mask(imageRaw, fungal_mask)
     labels = segment_image(masked_image)
-    segments, average_colors, most_occuring_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
+    
+    segments, average_colors, total_average_color_hex, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
+    
     print(f"Number of segments: {len(segments)}")
-    print("Segments (label, area, average color, most occurring color):")
-    for segment, avg_color, most_color in zip(segments, average_colors, most_occuring_colors):
-        print(f"Label: {segment[0]}, Area: {segment[1]}, Average Color: {avg_color}, Most Occurring Color: {most_color}")
-    print(f"Total Average Color from all segments: {total_average_color}")
-    display_results(rgb2gray(masked_image), fungal_mask, labels, filtered_labels, True
-    )
+    print("Segments (label, area, average color):")
+    for segment, avg_color in zip(segments, average_colors):
+        print(f"Label: {segment[0]}, Area: {segment[1]}, Average Color: {avg_color}")
+    print(f"Total Average Color from all segments: {total_average_color_hex}")
+    
+    display_results(rgb2gray(masked_image), fungal_mask, labels, filtered_labels, True)
+
 if __name__ == "__main__":
     main()

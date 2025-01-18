@@ -18,7 +18,6 @@ def read_image(path):
     if image is None:
         raise FileNotFoundError("Image not found. Please check the path.")
     return img_as_ubyte(image)
-
 def create_background_mask(image, background_colors, tolerance):
     background_mask = np.zeros(image.shape[:2], dtype=bool)
     for background_color in background_colors:
@@ -27,14 +26,13 @@ def create_background_mask(image, background_colors, tolerance):
         mask = np.all((image >= lower_bound) & (image <= upper_bound), axis=2)
         background_mask |= mask
     return ~background_mask
-
 def apply_mask(image, mask):
     return image * np.dstack([mask] * 3)
 
 def segment_image(image):
     gray_image = rgb2gray(image)
-    denoised = rank.median(img_as_ubyte(gray_image), disk(2))
-    markers = rank.gradient(denoised, disk(5)) < 10
+    denoised = rank.median(img_as_ubyte(gray_image), disk(5))
+    markers = rank.gradient(denoised, disk(3)) < 10
     markers = ndi.label(markers)[0]
     gradient = rank.gradient(denoised, disk(2))
     labels = watershed(gradient, markers)
@@ -43,12 +41,14 @@ def segment_image(image):
 def rgb_to_hex(r, g, b):
     return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
 
-def filter_segments(labels, imageRaw, area_threshold, file_name):
+def filter_segments(labels, imageRaw, area_threshold, black_pixel_threshold=0.1):
     unique_labels = np.unique(labels)
     segments = []
     filtered_labels = np.zeros_like(labels)
     average_colors = []
     all_segment_pixels = []
+    total_area = 0
+    weighted_sum = np.zeros(3)
     
     for label in unique_labels:
         if label == 0:
@@ -57,6 +57,10 @@ def filter_segments(labels, imageRaw, area_threshold, file_name):
         area = np.sum(mask)
         if area >= area_threshold:
             segment_pixels = imageRaw[mask]
+            black_pixels = np.sum(np.all(segment_pixels == [0, 0, 0], axis=1))
+            black_pixel_ratio = black_pixels / area
+            if black_pixel_ratio > black_pixel_threshold:
+                continue  # Skip segments with too many black pixels
             average_color = np.mean(segment_pixels, axis=0)
             segment_pixels_tuple = [tuple(pixel) for pixel in segment_pixels]
             most_common_color = Counter(segment_pixels_tuple).most_common(1)[0][0]
@@ -65,12 +69,11 @@ def filter_segments(labels, imageRaw, area_threshold, file_name):
                 segments.append((label, area))
                 average_colors.append((label, average_color))
                 all_segment_pixels.extend(segment_pixels)
+                weighted_sum += average_color * area
+                total_area += area
     
-    total_average_color = np.mean(all_segment_pixels, axis=0)
-    try:
-        total_average_color_hex = rgb_to_hex(*total_average_color)
-    except:
-        print(file_name)
+    total_average_color = weighted_sum / total_area if total_area > 0 else np.zeros(3)
+    total_average_color_hex = rgb_to_hex(*total_average_color)
     return segments, average_colors, total_average_color_hex, filtered_labels
 
 def build_annotation_dataframe(image_location, annot_location, output_csv_name):
@@ -101,9 +104,9 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
                 
                 file_path = os.path.join(image_location, class_name, file_name)  # concatenate class folder dir, class name and file name
                 imageRaw = read_image(file_path)
-                background_colors = [np.array([40, 75, 165]), np.array([200, 200, 200])]  # Replace with the actual background colors
+                background_colors = [np.array([75, 40, 145]), np.array([42, 131, 214])]  # purple, orange
                 tolerance = 20  # Adjust the tolerance as needed
-                area_threshold = 150  # Adjust this value as needed
+                area_threshold = 100  # Adjust this value as needed
                 fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
                 masked_image = apply_mask(imageRaw, fungal_mask)
                 labels = segment_image(masked_image)
