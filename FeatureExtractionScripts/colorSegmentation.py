@@ -13,6 +13,14 @@ from collections import Counter
 exclude = 'FeatureExtractionScripts\\filter\\exclude.txt'
 exclude_l = open(exclude).read().splitlines()
 
+# Import functions from FeatureExtraction.py
+from FeatureExtraction import (
+    extract_lbp_features,
+    extract_color_histogram,
+    extract_fourier_features,
+    extract_statistical_features,
+)
+
 def read_image(path):
     image = cv2.imread(path)
     if image is None:
@@ -111,7 +119,11 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
                 masked_image = apply_mask(imageRaw, fungal_mask)
                 labels = segment_image(masked_image)
                 segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold, file_name)
-                writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color])
+                lbp_features = extract_lbp_features(imageRaw)
+                fourier_features = extract_fourier_features(imageRaw)
+                mean, variance = extract_statistical_features(imageRaw)
+
+                writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color, lbp_features, fourier_features, mean, variance])
                 percentage_done = (int((i / file_count)*100))
                 i = i + 1
                 if(percentage_done%20 == 0):
