@@ -12,14 +12,14 @@ from skimage import data, color
 from skimage.transform import hough_circle, hough_circle_peaks
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # data_folder_path = 'D:\\AllData'
-data_folder_path = 'E:\\fredd\\Uni\\Thesis\\Image-Processing\\Data\\DataSetUniform\\DataSet'
+data_folder_path = 'E:\\fredd\\Uni\\Thesis\\Image-Processing\\Data\\Output\\DataSetUniform'
 
 output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSetSig')
 # info = pd.read_excel(r'C:\Users\Bruger\Documents\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 info = pd.read_excel(r'E:\fredd\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 
 ibtinfo = info['IBT number']
-finished_ibt = 'Preprocessing\\filters\\significantibtfinished.txt'
+finished_ibt = 'Preprocessing\\filters\\finished_sig.txt'
 exclude_list = 'Preprocessing\\filters\\exclude.txt'
 
 
@@ -108,7 +108,7 @@ for folder in os.listdir(data_folder_path):
     
     dataset_output = os.path.join(base_path, output_folder, folder)
     if not os.path.exists(dataset_output):
-        os.mkdir(dataset_output)
+        os.makedirs(dataset_output, exist_ok=True)
     for filename in os.listdir(folder_path):
         filename_without_extension = os.path.splitext(filename)[0]
         result = filename_without_extension.split("_")[0]
