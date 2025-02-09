@@ -96,11 +96,15 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
     """
     class_lst = os.listdir(image_location)  # returns a LIST containing the names of the entries (folder names in this case) in the directory.
     class_lst.sort()  # IMPORTANT
-    with open(os.path.join(annot_location, output_csv_name), 'w', newline='') as csvfile:
+    open_type = 'w'
+    if len(exclude_l) != 0:
+        open_type = 'a'
+    with open(os.path.join(annot_location, output_csv_name), open_type, newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['file_name', 'file_path', 'class_name', 'class_index', 'average_color'])  # create column names
+        if len(exclude_l) == 0:
+            writer.writerow(['file_name', 'file_path', 'class_name', 'class_index', 'average_color'])  # create column names
         for class_name in class_lst:
-            if class_name in exclude_l:
+            if class_name in exclude_l or class_name == "ColorFeature.csv":
                 print("Already processed " + class_name + ", skipping!")
                 continue
             class_path = os.path.join(image_location, class_name)  # concatenates various path components with exactly one directory separator (‘/’) except the last path component.
@@ -118,12 +122,14 @@ def build_annotation_dataframe(image_location, annot_location, output_csv_name):
                 fungal_mask = create_background_mask(imageRaw, background_colors, tolerance)
                 masked_image = apply_mask(imageRaw, fungal_mask)
                 labels = segment_image(masked_image)
+
                 segments, average_colors, total_average_color, filtered_labels = filter_segments(labels, imageRaw, area_threshold, file_name)
                 lbp_features = extract_lbp_features(imageRaw)
                 fourier_features = extract_fourier_features(imageRaw)
                 mean, variance = extract_statistical_features(imageRaw)
 
                 writer.writerow([file_name, file_path, class_name, class_lst.index(class_name), total_average_color, lbp_features, fourier_features, mean, variance])
+
                 percentage_done = (int((i / file_count)*100))
                 i = i + 1
                 if(percentage_done%20 == 0):

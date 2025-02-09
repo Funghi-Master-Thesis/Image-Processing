@@ -14,64 +14,14 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 # data_folder_path = 'D:\\AllData'
 data_folder_path = 'E:\\fredd\\Uni\\Thesis\\Image-Processing\\Data\\AllData'
 
-output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSet')
+output_folder = os.path.join(base_path, 'Data', 'Output', 'DataSetUniform')
 # info = pd.read_excel(r'C:\Users\Bruger\Documents\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 info = pd.read_excel(r'E:\fredd\Uni\Thesis\Image-Processing\Data\DataDescription.xlsx')
 
 ibtinfo = info['IBT number']
-finished_ibt_detail = 'Preprocessing\\finishedibt.txt'
-finished_ibt = 'Preprocessing\\finishedibtjustnumber.txt'
+finished_ibt = 'Preprocessing\\filters\\finished_uniform.txt'
 
 lines = open(finished_ibt).read().splitlines()
-
-
-def canny_edge_detector(low_threshold, high_threshold):
-    # Read the image using OpenCV
-
-    # Apply Gaussian smoothing
-    blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
-
-    # Compute gradients using Sobel operators
-    gradient_x = cv2.Sobel(blurred_image, cv2.CV_64F, 1, 0, ksize=3)
-    gradient_y = cv2.Sobel(blurred_image, cv2.CV_64F, 0, 1, ksize=3)
-
-    # Calculate gradient magnitude and direction
-    magnitude = np.sqrt(gradient_x**2 + gradient_y**2)
-    gradient_direction = np.arctan2(gradient_y, gradient_x) * (180 / np.pi)
-
-    # Non-maximum suppression
-    non_max_suppressed = cv2.Canny(blurred_image, low_threshold, high_threshold)
-
-    # Edge tracking by hysteresis
-    edge_map = cv2.Canny(blurred_image, low_threshold, high_threshold)
-
-
-    return edge_map
-
-def optimal_threshold():
-    # Step 4: Use Otsu's method to get the optimal threshold
-    blurred_image = cv2.GaussianBlur(cimg, (5, 5), 0)
-    otsu_thresh_value, otsu_thresh_image = cv2.threshold(blurred_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Step 5: Apply Canny Edge Detection using Otsu's threshold
-    optimal_threshold = otsu_thresh_value / 2
-    lower_thresh = int(max(0, 0.5 * optimal_threshold))
-    upper_thresh = int(min(255, 1.5 * optimal_threshold))
-
-    return lower_thresh, upper_thresh
-
-
-def scaling_factor(image):
-   
-    # we know that in an image with six petridishes, each dish roughley takes up 1/6 of the iamge.
-    # therfore we can divide the image size by six and get the scaling factor for for the radii.
-    width, hight = image.shape
-    scaling = (1/6)
-    width = width * scaling
-    hight = hight * scaling
-
-    return int(width), int(hight)
-
 
 for folder in os.listdir(data_folder_path):
     folder_path = os.path.join(data_folder_path, folder)
@@ -98,7 +48,7 @@ for folder in os.listdir(data_folder_path):
     
     mask_array = []
     if not os.path.exists(dataset_output):
-        os.mkdir(dataset_output)
+        os.makedirs(dataset_output, exist_ok=True)
     print("Processing: " + number)
     mask = np.zeros((600, 400, 3), np.uint8)
     xrange = [100, 300, 500]
@@ -123,15 +73,10 @@ for folder in os.listdir(data_folder_path):
             res = cv2.bitwise_and(img,img,mask = mask)
                 # For comparison
             cv2.imwrite(dataset_output + '\\' + (number+"_"+filename), res)
-        break
                 
 
 
-    with open(finished_ibt_detail, 'r') as file:
-        content = file.read()
-    new = content +number + " - " + fungi_class + "\n"
-    with open(finished_ibt_detail, 'w') as file:
-        file.write(new)
+
     with open(finished_ibt, 'r') as file:
         content = file.read()
     ibts = content + number + "\n"

@@ -103,7 +103,7 @@ def display_results(gray_image, fungal_mask, markers, filtered_labels, vizualize
         plt.show()
 
 def main():
-    image_path = 'D:\\gitRepos\\Image-Processing\\Data\\DataSetCutLast2Days\\Aspergillus-aculeatinus\\32384_240_row_3_col_1.jpg'
+    image_path = 'E:/fredd/Uni/Thesis/Datasets/AllDatasets/DataSetCutLast2Days/Aspergillus-aculeatinus\\32384_240_row_3_col_1.jpg'
     background_colors = [np.array([75, 40, 145]), np.array([42, 131, 214])]  # purple, orange
     tolerance = 20  
     area_threshold = 100  
