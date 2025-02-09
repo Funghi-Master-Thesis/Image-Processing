@@ -8,11 +8,23 @@ from skimage.color import rgb2gray
 import numpy as np
 import cv2
 from collections import Counter
+from skimage.feature import local_binary_pattern
+
+# Import functions from FeatureExtraction.py
+from FeatureExtraction import (
+    extract_lbp_features,
+    extract_color_histogram,
+    extract_fourier_features,
+    extract_statistical_features,
+)
+
+
 def read_image(path):
     image = cv2.imread(path)
     if image is None:
         raise FileNotFoundError("Image not found. Please check the path.")
     return img_as_ubyte(image)
+
 def create_background_mask(image, background_colors, tolerance):
     background_mask = np.zeros(image.shape[:2], dtype=bool)
     for background_color in background_colors:
@@ -21,6 +33,7 @@ def create_background_mask(image, background_colors, tolerance):
         mask = np.all((image >= lower_bound) & (image <= upper_bound), axis=2)
         background_mask |= mask
     return ~background_mask
+
 def apply_mask(image, mask):
     return image * np.dstack([mask] * 3)
 
@@ -100,14 +113,19 @@ def main():
     labels = segment_image(masked_image)
     
     segments, average_colors, total_average_color_hex, filtered_labels = filter_segments(labels, imageRaw, area_threshold)
+    lbp_features = extract_lbp_features(imageRaw)
+    fourier_features = extract_fourier_features(imageRaw)
+    mean, variance = extract_statistical_features(imageRaw)
     
-    print(f"Number of segments: {len(segments)}")
-    print("Segments (label, area, average color):")
-    for segment, avg_color in zip(segments, average_colors):
-        print(f"Label: {segment[0]}, Area: {segment[1]}, Average Color: {avg_color}")
-    print(f"Total Average Color from all segments: {total_average_color_hex}")
+    print("Segments:", segments)
+    print("Average Colors:", average_colors)
+    print("Total Average Color (Hex):", total_average_color_hex)
+    print("LBP Features:", lbp_features)
+    print("Fourier Features:", fourier_features)
+    print("Mean:", mean)
+    print("Variance:", variance)
+
     
-    display_results(rgb2gray(masked_image), fungal_mask, labels, filtered_labels, True)
 
 if __name__ == "__main__":
     main()
